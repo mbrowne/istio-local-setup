@@ -16,6 +16,9 @@ Local minimal istio setup ready for apps to be installed and smoke tested. You c
 curl -L https://github.com/istio/istio/releases/download/1.3.3/istio-1.3.3-linux.tar.gz | tar xz
 cd istio-1.3.3
 
+# Connect to local cluster in cat ~/.kube/config
+kubectl config use-context docker-desktop
+
 # Initialize helm / tiller in the cluster
 helm init
 
@@ -61,8 +64,16 @@ and you should see
 
 ![](screenshot-success.png)
 
-
 ```bash
 # Uninstall
 helm del --purge istio-local-setup
 ```
+
+helm install --name traefik --namespace default \
+ --set dashboard.enabled=true,dashboard.auth.basic.admin='$apr1$n5r7oJvl\$NydaAb2oe.IudnNy4dCz3/' \
+ stable/traefik
+https://www.htaccesstools.com/htpasswd-generator/
+
+# admin
+
+# password
