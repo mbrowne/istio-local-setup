@@ -13,24 +13,27 @@ Local minimal istio setup ready for apps to be installed and smoke tested. You c
 
 ```bash
 # Download istio
-curl -L https://github.com/istio/istio/releases/download/1.3.3/istio-1.3.3-linux.tar.gz | tar xz
-cd istio-1.3.3
+curl -L https://istio.io/downloadIstio | sh -
+cd istio-1.5.0
+
+# Move istioctl to a location in your PATH
+mv bin/istioctl /usr/local/bin
 
 # Connect to local cluster in cat ~/.kube/config
 kubectl config use-context docker-desktop
 
-# Initialize helm / tiller in the cluster
-helm init
+# Create namsepaces
+kubectl create namespace istio-system
+kubectl create namespace istio-local-setup
 
 # Install istio bootstrap
-helm install install/kubernetes/helm/istio-init --name istio-init --namespace istio-system
+helm install istio-init install/kubernetes/helm/istio-init --namespace istio-system
 
-# Check it's loaded should say 23
+# Check it's loaded, should say 25
 kubectl get crds | grep 'istio.io' | wc -l
 
 # Install minimal istio
-helm install install/kubernetes/helm/istio \
-    --name istio \
+helm install istio install/kubernetes/helm/istio \
     --namespace istio-system \
     --values install/kubernetes/helm/istio/values-istio-minimal.yaml \
     --set gateways.istio-ingressgateway.type=NodePort \
@@ -39,7 +42,7 @@ helm install install/kubernetes/helm/istio \
 # Check all services deployed
 kubectl get svc -n istio-system
 
-# Check all pods are running
+# Check that istio-ingressgateway and istio-pilot pods are running
 kubectl get pods -n istio-system
 
 # Check issues e.g. out of memory
@@ -49,14 +52,17 @@ kubectl get pods -n istio-system
 #kubectl label namespace default istio-injection=enabled
 #kubectl get namespace -L istio-injection
 
-# Install the hello world chart and it's routing
-helm install charts/istio-local-setup/ -n istio-local-setup --debug --dry-run
+# Test the chart
+helm install --namespace istio-local-setup istio-local-setup charts/istio-local-setup/ --debug --dry-run
+
+# Install the chart and its routing
+helm install --namespace istio-local-setup istio-local-setup charts/istio-local-setup/ --debug
 
 # Access the istio gateway
 kubectl port-forward -n istio-system svc/istio-ingressgateway 8080:80
 ```
 
-Visit
+After pods have finished starting up, visit
 
 http://localhost:8080/hello
 
@@ -65,8 +71,8 @@ and you should see
 ![](screenshot-success.png)
 
 ```bash
-# Uninstall
-helm del --purge istio-local-setup
+# Uninstall charts/istio-local-setup
+helm uninstall --namespace istio-local-setup istio-local-setup
 ```
 
 helm install --name traefik --namespace default \
